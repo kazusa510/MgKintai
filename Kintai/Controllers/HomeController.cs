@@ -5,9 +5,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Kintai.Models;
+using Kintai.Filters;
 
 namespace Kintai.Controllers
 {
+    [LoginFilter]
     public class HomeController : Controller
     {
         public IActionResult Index()
