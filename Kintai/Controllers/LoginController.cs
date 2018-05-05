@@ -9,6 +9,7 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using Kintai.Models.Session;
+using System.Data.SqlClient;
 
 namespace Kintai.Controllers
 {
@@ -65,13 +66,15 @@ namespace Kintai.Controllers
 
         private ActionResult ExecuteLogin(string accessToken = null)
         {
-            var email = "developer@microgear.co.jp";
-            var name = "開発 太郎";
-            if (accessToken != null)
+            var email = accessToken != null ? GoogleOAuth.GetEmail(accessToken) : "developer@microgear.co.jp";
+            var name = GetUserName(email);
+
+            if (name == null)
             {
-                email = GoogleOAuth.GetEmail(accessToken);
-                name = "後藤 上総"; // ToDo:DBより取得（取得できなければログイン失敗にする）
+                TempData["message"] = $"{email} は ユーザー登録されていないためログインできません。";
+                return RedirectToAction("Index");
             }
+
             var logoutAccount = HttpContext.Session.GetObject<Account>(Account.SESSION_KEY) as LogoutAccount;
             HttpContext.Session.SetObject<Account>(Account.SESSION_KEY, new LoginAccount(email, name));
             if (logoutAccount != null)
@@ -84,6 +87,23 @@ namespace Kintai.Controllers
                 // 戻り先がないならデフォルト画面へ
                 return RedirectToAction("Index", "Home");
             }
+        }
+
+        private string GetUserName(string email)
+        {
+            string conn = "Server=(localdb)\\mssqllocaldb;Database=DataKintai;Trusted_Connection=True;MultipleActiveResultSets=true";
+            using (var connection = new SqlConnection(conn))
+            using (var command = new SqlCommand("SELECT * FROM Users WHERE Email=@Email", connection))
+            {
+                command.Parameters.Add(new SqlParameter("Email", email));
+                connection.Open();
+                var reader = command.ExecuteReader();
+                while(reader.Read())
+                {
+                    return reader.GetString(2);
+                }
+            }
+            return null;
         }
     }
 
