@@ -95,8 +95,8 @@ namespace Kintai.Controllers
 
         static GoogleOAuth()
         {
-            ClientId = "806346248877-lkple2av52ef1m4v43tg6flg97sqrh0e.apps.googleusercontent.com";
-            ClientSecret = "H5sJ9N6RznP33g-V0JAJ4n5H";
+            ClientId = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX.apps.googleusercontent.com";
+            ClientSecret = "YYYYYYYYYYYYYYYYY";
         }
 
         public static void Initialize(string callbackUrl)
