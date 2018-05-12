@@ -109,6 +109,7 @@ namespace Kintai.Controllers
 
     public static class GoogleOAuth
     {
+
         public static readonly string ClientId = "";
         public static readonly string ClientSecret = "";
         public static string Callback { get; private set; }
