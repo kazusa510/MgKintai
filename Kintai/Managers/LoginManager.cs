@@ -1,11 +1,7 @@
 ﻿using Kintai.Models;
 using Kintai.Models.Session;
 using Microsoft.AspNetCore.Http;
-using System;
-using System.Collections.Generic;
 using System.Data.SqlClient;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Kintai.Managers
 {
@@ -16,27 +12,65 @@ namespace Kintai.Managers
         private const string DEBUG_NAME = "開発 太郎";
 
         private static GoogleOAuthClient googleOAuth = new GoogleOAuthClient(
-            clientId: "806346248877-lkple2av52ef1m4v43tg6flg97sqrh0e.apps.googleusercontent.com",
-            clientSecret: "H5sJ9N6RznP33g-V0JAJ4n5H");
+            clientId: "999999999999-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX.apps.googleusercontent.com",
+            clientSecret: "YYYYYYYYYYYYYY-ZZZZZZZZZ");
 
-        public static bool IsLogin(HttpContext context)
+        /// <summary>
+        /// ログイン済みかどうか
+        /// </summary>
+        /// <param name="httpContext">HttpContext</param>
+        /// <returns></returns>
+        public static bool IsLogin(HttpContext httpContext)
         {
-            return (context.Session.GetObject<Account>(Account.SESSION_KEY) is Account account && account.IsLogin);
+            return (httpContext.Session.GetObject<Account>(Account.SESSION_KEY) is Account account && account.IsLogin);
         }
 
-        public static bool LoginByCookie(HttpContext context)
+        /// <summary>
+        /// GoogleOAuth認証画面へのURLを取得
+        /// </summary>
+        /// <param name="callback">認証後のコールバックURL</param>
+        /// <returns></returns>
+        public static string GetGoogleLoginUrl(string callback)
+        {
+            return googleOAuth.GetAuthUrl(callback);
+        }
+
+        /// <summary>
+        /// GoogleOAuth認証コードを元にログインする
+        /// </summary>
+        /// <param name="httpContext">HttpContext</param>
+        /// <param name="authorizationCode">認証コード</param>
+        /// <param name="callback">コールバックURL</param>
+        /// <param name="message">ログイン結果メッセージ</param>
+        /// <returns>ログイン成否</returns>
+        public static bool LoginByAuthorizationCode(HttpContext httpContext, string authorizationCode, string callback, out string message)
+        {
+            // アクセストークンとリフレッシュトークンを取得
+            var token = googleOAuth.GetAccessToken(authorizationCode, callback, out string refreshToken);
+            // リフレッシュトークンはクッキーに保持
+            httpContext.Response.Cookies.Append("refresh_token", refreshToken);
+            // アクセストークンを使ってログイン処理を実施
+            return ExecuteLogin(httpContext, token, out message);
+        }
+
+        /// <summary>
+        /// クッキー情報を元にログインする
+        /// </summary>
+        /// <param name="httpContext">HttpContext</param>
+        /// <returns>ログイン成否</returns>
+        public static bool LoginByCookie(HttpContext httpContext)
         {
             // クッキーからリフレッシュトークンが取得できるならそのままログイン
-            if (context.Request.Cookies["refresh_token"] != null)
+            if (httpContext.Request.Cookies["refresh_token"] != null)
             {
 #if DEBUG
-                if (context.Request.Cookies["refresh_token"] == DEBUG_REFRESH_TOKEN) return ExecuteLogin(context, null, out _);
+                if (httpContext.Request.Cookies["refresh_token"] == DEBUG_REFRESH_TOKEN) return ExecuteLogin(httpContext, null, out _);
 #endif
 
                 // リフレッシュトークンを使ってアクセストークンを取得
-                var token = googleOAuth.GetAccessToken(context.Request.Cookies["refresh_token"]);
+                var token = googleOAuth.GetAccessToken(httpContext.Request.Cookies["refresh_token"]);
                 // アクセストークンを使ってログイン処理を実施
-                return ExecuteLogin(context, token, out _);
+                return ExecuteLogin(httpContext, token, out _);
             }
             else
             {
@@ -44,31 +78,21 @@ namespace Kintai.Managers
             }
         }
 
-        public static string GetGoogleLoginUrl(string callback)
-        {
-            return googleOAuth.GetAuthUrl(callback);
-        }
-
-        public static bool LoginByAuthorizationCode(HttpContext context, string code, string callback, out string message)
-        {
-            // アクセストークンとリフレッシュトークンを取得
-            var token = googleOAuth.GetAccessToken(code, callback, out string refreshToken);
-            // リフレッシュトークンはクッキーに保持
-            context.Response.Cookies.Append("refresh_token", refreshToken);
-            // アクセストークンを使ってログイン処理を実施
-            return ExecuteLogin(context, token, out message);
-        }
-
 #if DEBUG
-        public static bool DebugLogin(HttpContext context)
+        /// <summary>
+        /// デバッグモードログイン
+        /// </summary>
+        /// <param name="httpContext">HttpContext</param>
+        /// <returns></returns>
+        public static bool DebugLogin(HttpContext httpContext)
         {
             // DEBUG用のリフレッシュトークンはクッキーに保持
-            context.Response.Cookies.Append("refresh_token", DEBUG_REFRESH_TOKEN);
-            return ExecuteLogin(context, null, out _);
+            httpContext.Response.Cookies.Append("refresh_token", DEBUG_REFRESH_TOKEN);
+            return ExecuteLogin(httpContext, null, out _);
         }
 #endif
 
-        private static bool ExecuteLogin(HttpContext context, string accessToken, out string message)
+        private static bool ExecuteLogin(HttpContext httpContext, string accessToken, out string message)
         {
             // メールアドレス、名前を取得
             var email = accessToken != null ? googleOAuth.GetEmail(accessToken) : DEBUG_EMAIL;
@@ -82,7 +106,7 @@ namespace Kintai.Managers
             }
 
             // アカウント情報をセッションに保存
-            context.Session.SetObject<Account>(Account.SESSION_KEY, new LoginAccount(email, name));
+            httpContext.Session.SetObject<Account>(Account.SESSION_KEY, new LoginAccount(email, name));
 
             message = $"{email} が ログインしました。";
 
