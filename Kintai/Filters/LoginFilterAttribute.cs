@@ -1,11 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Controllers;
+﻿using Kintai.Managers;
+using Kintai.Models.Session;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Kintai.Models.Session;
 
 namespace Kintai.Filters
 {
@@ -17,11 +14,12 @@ namespace Kintai.Filters
             if (context == null) throw new ArgumentNullException(nameof(context));
 
             // ログイン済みならそのままAction実行
-            if (context.HttpContext.Session.GetObject<Account>(Account.SESSION_KEY) is Account account && account.IsLogin) return;
+            if (LoginManager.IsLogin(context.HttpContext)) return;
 
-            // ログインしていなければログイン画面へ遷移
-            var descriptor = (ControllerActionDescriptor)context.ActionDescriptor;
-            context.HttpContext.Session.SetObject<Account>(Account.SESSION_KEY, new LogoutAccount(descriptor.RouteValues));
+            // クッキー情報からログインできるならログインしてAction実行
+            if (LoginManager.LoginByCookie(context.HttpContext)) return;
+
+            // ログインできなければログイン画面へ
             context.Result = new RedirectToActionResult("Index", "Login", null);
         }
 

@@ -16,17 +16,17 @@ namespace Kintai.Models.Session
     [Serializable]
     public class LogoutAccount : Account
     {
-        public IDictionary<string, string> RouteValues { get; }
+        //public IDictionary<string, string> RouteValues { get; }
 
-        public LogoutAccount(string returnContrller, string returnAction)
-        {
-            RouteValues = new Dictionary<string, string> { { "controller", returnContrller }, { "action", returnAction } };
-        }
+        //public LogoutAccount(string returnContrller, string returnAction)
+        //{
+        //    RouteValues = new Dictionary<string, string> { { "controller", returnContrller }, { "action", returnAction } };
+        //}
 
-        public LogoutAccount(IDictionary<string,string> routeValues)
-        {
-            RouteValues = routeValues;
-        }
+        //public LogoutAccount(IDictionary<string,string> routeValues)
+        //{
+        //    RouteValues = routeValues;
+        //}
     }
 
     [Serializable]
